@@ -85,6 +85,8 @@ table inet filter {
         chain input {
                 type filter hook input priority 0;
                 tcp dport 16888 drop
+                ip saddr 127.0.0.1 tcp dport 5000 accept
+                ip saddr != 127.0.0.1 tcp dport 5000 drop
                 #将指定ip的53端口请求入站，非指定的ip入站drop
                 #ip saddr 1xx.0.0.0/16 udp dport 53 accept
                 #ip saddr 2xx.0.0.0/16 udp dport 53 accept
