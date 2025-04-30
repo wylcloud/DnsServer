@@ -1920,7 +1920,7 @@ execute_scriptJ(){
 
 }
 execute_scriptK(){
-    bash <(curl -L -s check.unlock.media)
+    bash <(curl -L -s https://raw.githubusercontent.com/1-stream/RegionRestrictionCheck/main/check.sh)
 
 }
 
