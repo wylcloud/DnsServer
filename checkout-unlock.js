@@ -1,12 +1,14 @@
+// checkout-unlock.js
+
 let body = $response.body;
 
-// 修改金额为非零，防止因金额为0被禁用
+// 伪装金额（防止为 ¥0 导致按钮无效）
 body = body.replace(
   /<div class="price-amount amt" id="totalDueToday">.*?<\/div>/,
-  `<div class="price-amount amt" id="totalDueToday">¥680.00CNY</div>`
+  `<div class="price-amount amt" id="totalDueToday">¥520.00CNY</div>`
 );
 
-// 插入 JS 脚本解除按钮限制
+// 插入 JS
 body = body.replace(
   /<\/body>/,
   `<script>
@@ -16,26 +18,19 @@ body = body.replace(
         btn.disabled = false;
         btn.classList.remove("disabled");
         btn.removeAttribute("disabled");
-        console.log("✅ 已解除按钮禁用");
+        console.log("✅ 按钮已解除禁用");
 
-        // 模拟点击事件（可选）
-        // btn.click();
-
-        // 如果需要强制触发绑定的 click handler，可用：
-        var evt = new MouseEvent("click", {
-          bubbles: true,
-          cancelable: true,
-          view: window
-        });
-        btn.dispatchEvent(evt);
-        console.log("✅ 已触发按钮点击事件");
+        // 触发点击事件
+        setTimeout(function() {
+          btn.click();
+          console.log("✅ 已自动点击按钮");
+        }, 500); // 延迟 0.5 秒防止页面还在加载
       }
 
-      // 也可尝试修改隐藏的字段（如购物车金额或数据验证）
+      // 同时也修正金额显示
       var totalDue = document.getElementById("totalDueToday");
       if (totalDue) {
-        totalDue.innerText = "¥680.00CNY";
-        console.log("✅ 金额已修改");
+        totalDue.innerText = "¥520.00CNY";
       }
     });
   </script></body>`
