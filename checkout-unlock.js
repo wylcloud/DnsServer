@@ -5,7 +5,7 @@ let body = $response.body;
 // 伪装金额（防止为 ¥0 导致按钮无效）
 body = body.replace(
   /<div class="price-amount amt" id="totalDueToday">.*?<\/div>/,
-  `<div class="price-amount amt" id="totalDueToday">¥520.00CNY</div>`
+  `<div class="price-amount amt" id="totalDueToday">¥680.00CNY</div>`
 );
 
 // 插入 JS
@@ -30,7 +30,7 @@ body = body.replace(
       // 同时也修正金额显示
       var totalDue = document.getElementById("totalDueToday");
       if (totalDue) {
-        totalDue.innerText = "¥520.00CNY";
+        totalDue.innerText = "¥680.00CNY";
       }
     });
   </script></body>`
