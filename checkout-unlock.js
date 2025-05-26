@@ -3,7 +3,7 @@ let body = $response.body;
 // 修改金额为非零，防止因金额为0被禁用
 body = body.replace(
   /<div class="price-amount amt" id="totalDueToday">.*?<\/div>/,
-  `<div class="price-amount amt" id="totalDueToday">¥520.00CNY</div>`
+  `<div class="price-amount amt" id="totalDueToday">¥680.00CNY</div>`
 );
 
 // 插入 JS 脚本解除按钮限制
@@ -34,7 +34,7 @@ body = body.replace(
       // 也可尝试修改隐藏的字段（如购物车金额或数据验证）
       var totalDue = document.getElementById("totalDueToday");
       if (totalDue) {
-        totalDue.innerText = "¥520.00CNY";
+        totalDue.innerText = "¥680.00CNY";
         console.log("✅ 金额已修改");
       }
     });
