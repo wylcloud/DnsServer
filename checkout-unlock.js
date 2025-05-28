@@ -1,36 +1,42 @@
 let body = $response.body;
 
-// 替换金额，防止为 0 被禁用
+// 修改金额
 body = body.replace(
   /<div class="price-amount amt" id="totalDueToday">.*?<\/div>/,
   `<div class="price-amount amt" id="totalDueToday">¥680.00CNY</div>`
 );
 
-// 插入脚本：只解除按钮禁用，不自动触发点击
+// 插入 JS：延迟解除禁用，保持 UI 状态 & 支持真实点击
 body = body.replace(
   /<\/body>/,
   `<script>
     document.addEventListener("DOMContentLoaded", function() {
-      const btn = document.getElementById("checkout");
-      if (btn) {
-        // 解除禁用状态
-        btn.disabled = false;
-        btn.classList.remove("disabled");
-        btn.removeAttribute("disabled");
-        console.log("✅ 按钮已解锁（未自动点击）");
+      setTimeout(function() {
+        const btn = document.getElementById("checkout");
+        if (btn) {
+          // 先尝试触发原始事件绑定（如果需要）
+          const evt = new Event("mouseover", { bubbles: true });
+          btn.dispatchEvent(evt);
 
-        // 添加监听器用于调试点击是否发生
-        btn.addEventListener("click", function() {
-          console.log("✅ 用户已点击按钮");
-        });
-      }
+          // 再解除禁用
+          btn.disabled = false;
+          btn.removeAttribute("disabled");
+          btn.classList.remove("disabled");
 
-      // 确保金额也在页面加载后显示正确
-      const totalDue = document.getElementById("totalDueToday");
-      if (totalDue) {
-        totalDue.innerText = "¥680.00CNY";
-        console.log("✅ 金额已修改");
-      }
+          console.log("✅ 已解除禁用状态");
+
+          // 添加 click 调试
+          btn.addEventListener("click", () => {
+            console.log("✅ 用户点击了按钮");
+          });
+        }
+
+        const totalDue = document.getElementById("totalDueToday");
+        if (totalDue) {
+          totalDue.innerText = "¥680.00CNY";
+          console.log("✅ 金额已更新");
+        }
+      }, 100); // 延迟 100ms 让页面绑定逻辑先跑完
     });
   </script></body>`
 );
