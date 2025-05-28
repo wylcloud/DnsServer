@@ -1,42 +1,49 @@
 let body = $response.body;
 
-// 修改金额
+// 修改金额为非零，防止因金额为0被禁用
 body = body.replace(
   /<div class="price-amount amt" id="totalDueToday">.*?<\/div>/,
   `<div class="price-amount amt" id="totalDueToday">¥680.00CNY</div>`
 );
 
-// 插入 JS：延迟解除禁用，保持 UI 状态 & 支持真实点击
+// 插入 JS 脚本：等待事件绑定完成后自动触发点击
 body = body.replace(
   /<\/body>/,
   `<script>
     document.addEventListener("DOMContentLoaded", function() {
-      setTimeout(function() {
-        const btn = document.getElementById("checkout");
-        if (btn) {
-          // 先尝试触发原始事件绑定（如果需要）
-          const evt = new Event("mouseover", { bubbles: true });
-          btn.dispatchEvent(evt);
+      var btn = document.getElementById("checkout");
+      if (btn) {
+        // 解除禁用状态
+        btn.disabled = false;
+        btn.classList.remove("disabled");
+        btn.removeAttribute("disabled");
+        console.log("✅ 已解除按钮禁用");
 
-          // 再解除禁用
-          btn.disabled = false;
-          btn.removeAttribute("disabled");
-          btn.classList.remove("disabled");
+        // 修复视觉动画：确保 <i> 可见，loader 是隐藏的
+        var icon = btn.querySelector("span > i");
+        if (icon) icon.classList.remove("invisible");
 
-          console.log("✅ 已解除禁用状态");
+        var loader = btn.querySelector(".loader-button");
+        if (loader) loader.classList.add("hidden");
 
-          // 添加 click 调试
-          btn.addEventListener("click", () => {
-            console.log("✅ 用户点击了按钮");
+        // 模拟真实点击（自动触发原生事件）
+        setTimeout(() => {
+          var evt = new MouseEvent("click", {
+            bubbles: true,
+            cancelable: true,
+            view: window
           });
-        }
+          btn.dispatchEvent(evt);
+          console.log("✅ 已自动触发点击事件");
+        }, 300); // 给页面绑定事件留出足够时间
 
-        const totalDue = document.getElementById("totalDueToday");
+        // 同时更新金额字段文本
+        var totalDue = document.getElementById("totalDueToday");
         if (totalDue) {
           totalDue.innerText = "¥680.00CNY";
-          console.log("✅ 金额已更新");
+          console.log("✅ 金额已修改");
         }
-      }, 100); // 延迟 100ms 让页面绑定逻辑先跑完
+      }
     });
   </script></body>`
 );
