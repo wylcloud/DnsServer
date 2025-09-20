@@ -46,7 +46,7 @@ cat >/etc/realm/realm.toml <<EOF
     },
     {
       "listen": "0.0.0.0:51003",
-      "remote": "hkt.01010123.xyz:10570"
+      "remote": "103.102.4.144:51003"
     },
     {
       "listen": "0.0.0.0:51006",
