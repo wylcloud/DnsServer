@@ -33,8 +33,16 @@ cat >/etc/realm/realm.toml <<EOF
   },
   "endpoints": [
     {
-      "listen": "0.0.0.0:${LISTEN_PORT}",
-      "remote": "${REMOTE_ADDR}"
+      "listen": "0.0.0.0:51000",
+      "remote": "103.102.4.144:31000"
+    },
+    {
+      "listen": "0.0.0.0:51001",
+      "remote": "91.103.121.173:31000"
+    },
+    {
+      "listen": "0.0.0.0:51002",
+      "remote": "172.81.111.22:31000"
     }
   ]
 }
@@ -60,8 +68,6 @@ systemctl daemon-reload
 systemctl enable realm
 systemctl restart realm
 
-sleep 1
 # === 验证端口监听 ===
 echo "正在检查端口是否监听在 ${LISTEN_PORT} ..."
 ss -tuln | grep ${LISTEN_PORT} || echo "⚠️ 端口未监听，请检查日志：journalctl -u realm -e"
-echo "nano /etc/realm/realm.toml"
