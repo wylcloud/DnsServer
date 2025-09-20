@@ -76,7 +76,10 @@ systemctl daemon-reload
 systemctl enable realm
 systemctl restart realm
 
+
 sleep 1.5
+cat /etc/realm/realm.toml
 # === 验证端口监听 ===
 echo "正在检查端口是否监听在 ${LISTEN_PORT} ..."
 ss -tuln | grep ${LISTEN_PORT} || echo "⚠️ 端口未监听，请检查日志：journalctl -u realm -e"
+echo "nano /etc/realm/realm.toml"
