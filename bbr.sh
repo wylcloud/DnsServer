@@ -931,11 +931,8 @@ echo "$MSG_THANKS_ISIF"
 echo "$MSG_ISIF_LINK"
 echo ""
 
-echo '回滚方法:
-==========
-如需回滚，执行以下命令:
-rm /etc/sysctl.d/99-tcp-bbr-optimization.conf
-sysctl --system
 
-配置文件位置:
-- 当前配置: /etc/sysctl.d/99-tcp-bbr-optimization.conf'
+## 如需回滚，执行以下命令:
+## rm /etc/sysctl.d/99-tcp-bbr-optimization.conf
+## sysctl --system
+
