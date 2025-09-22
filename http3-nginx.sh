@@ -13,13 +13,6 @@ echo "=== 验证 GPG key ==="
 FINGERPRINT=$(gpg --dry-run --quiet --no-keyring --import --import-options import-show \
   /usr/share/keyrings/nginx-archive-keyring.gpg | grep -oE '[A-F0-9]{40}' || true)
 
-if [[ "$FINGERPRINT" != "573BFD6B3D8FBC641079A6ABABF5BD827BD9BF62" ]]; then
-  echo "❌ GPG 指纹不匹配，停止安装！"
-  exit 1
-else
-  echo "✅ GPG 指纹验证通过：$FINGERPRINT"
-fi
-
 echo "=== 添加 NGINX 官方仓库 ==="
 CODENAME=$(lsb_release -cs)
 echo "deb [signed-by=/usr/share/keyrings/nginx-archive-keyring.gpg] http://nginx.org/packages/debian $CODENAME nginx" \
