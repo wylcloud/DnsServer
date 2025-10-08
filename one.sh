@@ -16,10 +16,13 @@ cp -a $DNS_FILE ${DNS_FILE}.bak.$(date +%s)
 
 echo "=== 写入自定义 DNS ==="
 cat > $DNS_FILE <<EOF
+nameserver 94.140.14.140
+nameserver 94.140.14.141
 nameserver 208.67.222.222
-nameserver 94.140.15.15
 nameserver 1.1.1.1
 nameserver 8.8.8.8
+nameserver 2a10:50c0::1:ff
+nameserver 2a10:50c0::2:ff
 nameserver 2606:4700:4700::1111
 nameserver 2001:4860:4860::8888
 EOF
