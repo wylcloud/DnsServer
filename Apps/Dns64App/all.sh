@@ -1253,8 +1253,8 @@ Write_config(){
 listen = ::0:25880
 ipv6 = true
 psk = 9c1a96d13280
-obfs = http
-obfs-host = icloud.com
+#obfs = http
+#obfs-host = icloud.com
 tfo = true
 version = 4
 EOF
