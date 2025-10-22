@@ -1228,24 +1228,29 @@ ${Green_font_prefix} 2.${Font_color_suffix} v2  ${Green_font_prefix} 3.${Font_co
 }
 
 Service(){
-    echo '
+    cat > /etc/systemd/system/snell-server.service <<EOF
 [Unit]
-Description= Snell Service
+Description=Snell Service
 After=network-online.target
 Wants=network-online.target systemd-networkd-wait-online.service
+
 [Service]
-LimitNOFILE=32767 
+LimitNOFILE=32767
 Type=simple
 User=root
 Restart=on-failure
 RestartSec=5s
 ExecStartPre=/bin/sh -c 'ulimit -n 51200'
 ExecStart=/usr/local/bin/snell-server -c /etc/snell/config.conf
+
 [Install]
-WantedBy=multi-user.target' > /etc/systemd/system/snell-server.service
-systemctl enable --now snell-server
+WantedBy=multi-user.target
+EOF
+
+    systemctl enable --now snell-server
     echo -e "${Info} Snell Server 服务配置完成 !"
 }
+
 
 Write_config(){
     cat > ${CONF}<<-EOF
