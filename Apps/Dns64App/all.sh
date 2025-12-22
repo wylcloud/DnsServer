@@ -1231,8 +1231,7 @@ Service(){
     cat > /etc/systemd/system/snell-server.service <<EOF
 [Unit]
 Description=Snell Service
-After=network-online.target
-Wants=network-online.target systemd-networkd-wait-online.service
+After=network.target
 
 [Service]
 LimitNOFILE=32767
