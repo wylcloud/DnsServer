@@ -4,9 +4,10 @@ body = body.replace(
   /<\/body>/,
   `<script>
     document.addEventListener("DOMContentLoaded", function () {
-      console.log("🧭 正在跳转至结账页面...");
-      window.open("https://app.kaze.network/cart.php?a=checkout", "_blank");
-    });
+  let win = window.open("about:blank", "_blank");
+  win.location.href = "https://app.kaze.network/cart.php?a=checkout";
+});
+
   </script></body>`
 );
 
