@@ -2493,6 +2493,36 @@ execute_scriptQ(){
 }
 
 
+execute_scriptT() {
+    read -p "请输入探针密钥: " NEZHA_KEY
+
+    if [ -z "$NEZHA_KEY" ]; then
+        echo "密钥不能为空"
+        return 1
+    fi
+
+    set -e
+
+    apt update
+    apt install -y unzip wget
+
+    wget -O nezha-agent_linux_amd64.zip https://github.com/nezhahq/agent/releases/download/v0.20.5/nezha-agent_linux_amd64.zip
+    unzip -o nezha-agent_linux_amd64.zip
+    chmod +x nezha-agent
+
+    ./nezha-agent service install \
+        -s 103.102.4.144:5555 \
+        --disable-force-update \
+        --disable-command-execute \
+        -p "$NEZHA_KEY"
+
+    systemctl daemon-reload
+    systemctl restart nezha-agent
+
+    echo "探针安装完成"
+}
+
+
 # Display menu and get user choice
 echo "请选择选项:"
 echo "1. 按顺序安装以下"
@@ -2513,6 +2543,7 @@ echo "15. interface参考文档"
 echo "16. 常用DNS集合"
 echo "17. 快速安装nginx及转发(没有http/3)"
 echo "18. NodeQuality"
+echo "19. 安装探针监控（被监控端）"
 echo 'echo "net.ipv6.conf.all.forwarding=1" >> /etc/sysctl.conf 开启ipv6转发，记住配置interfaces ipv6默认网关，防止ipv6丢失'
 read -p "Enter your choice: " choice
 
@@ -2578,7 +2609,10 @@ case $choice in
         ;;  
     18)
         execute_scriptQ
-        ;;          
+        ;;    
+    19)
+        execute_scriptT
+        ;;       
     *)
         echo "Invalid choice. Please enter 1, 2, 3, or 4."
         ;;
