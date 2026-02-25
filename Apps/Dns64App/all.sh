@@ -2503,7 +2503,6 @@ execute_scriptT() {
 
     set -e
 
-    apt update
     apt install -y unzip wget
 
     wget -O nezha-agent_linux_amd64.zip https://github.com/nezhahq/agent/releases/download/v0.20.5/nezha-agent_linux_amd64.zip
