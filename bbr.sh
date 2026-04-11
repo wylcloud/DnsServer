@@ -1,8 +1,8 @@
 #!/bin/bash
-
+## https://cdn.cmqos.com/bbr.sh
 # TCP通用优化脚本 - BBR+多队列算法选择+全面调优
 # 适用于大多数Linux服务器环境 (包含 Debian 13 Trixie 支持)
-# Version: 2.0 - 添加 Debian 13 兼容性，使用 /etc/sysctl.d/ 配置方式
+# Version: 3.0 - 添加自动安装缺失模块功能
 
 # 检测系统版本
 detect_os_version() {
@@ -22,6 +22,146 @@ detect_os_version() {
     fi
 }
 
+# 检查网络连接
+check_network() {
+    # 尝试 ping 多个公共 DNS
+    for host in 8.8.8.8 1.1.1.1 223.5.5.5; do
+        if ping -c 1 -W 2 $host &>/dev/null; then
+            return 0
+        fi
+    done
+    return 1
+}
+
+# 自动安装缺失的内核模块
+auto_install_modules() {
+    local need_install=0
+    local packages_to_install=""
+    
+    echo ""
+    if [[ "$LANG_CHOICE" == "zh" ]]; then
+        echo "检测到缺少内核模块，正在尝试自动修复..."
+        echo "=========================================="
+    else
+        echo "Missing kernel modules detected, attempting to auto-fix..."
+        echo "=========================================="
+    fi
+    
+    # 检查网络连接
+    if ! check_network; then
+        if [[ "$LANG_CHOICE" == "zh" ]]; then
+            echo "⚠️ 无网络连接，无法自动安装模块"
+            echo "请手动安装以下包："
+            echo "  apt install linux-modules-extra-$(uname -r)"
+            echo "  apt install iproute2 tc"
+            return 1
+        else
+            echo "⚠️ No network connection, cannot auto-install modules"
+            echo "Please manually install:"
+            echo "  apt install linux-modules-extra-$(uname -r)"
+            echo "  apt install iproute2 tc"
+            return 1
+        fi
+    fi
+    
+    # 更新包列表
+    if [[ "$LANG_CHOICE" == "zh" ]]; then
+        echo "正在更新包列表..."
+    else
+        echo "Updating package list..."
+    fi
+    apt update &>/dev/null
+    
+    # 检查并安装必要的包
+    local kernel_version=$(uname -r)
+    
+    # 检查基本工具
+    if ! command -v tc &>/dev/null; then
+        packages_to_install="$packages_to_install iproute2 tc"
+    fi
+    
+    # 检查内核模块包
+    if ! dpkg -l | grep -q "linux-modules-extra-${kernel_version}"; then
+        # 首先尝试精确版本
+        if apt-cache show "linux-modules-extra-${kernel_version}" &>/dev/null; then
+            packages_to_install="$packages_to_install linux-modules-extra-${kernel_version}"
+        else
+            # 尝试通用包
+            packages_to_install="$packages_to_install linux-modules-extra-$(uname -r | cut -d'-' -f1,2)*"
+        fi
+    fi
+    
+    # 如果是 Debian，也尝试安装内核头文件
+    if [[ "$OS_NAME" == *"Debian"* ]]; then
+        if ! dpkg -l | grep -q "linux-headers-${kernel_version}"; then
+            if apt-cache show "linux-headers-${kernel_version}" &>/dev/null; then
+                packages_to_install="$packages_to_install linux-headers-${kernel_version}"
+            fi
+        fi
+    fi
+    
+    # 执行安装
+    if [ -n "$packages_to_install" ]; then
+        if [[ "$LANG_CHOICE" == "zh" ]]; then
+            echo "将安装以下包: $packages_to_install"
+            read -p "是否继续? (Y/n): " confirm_install
+        else
+            echo "Will install: $packages_to_install"
+            read -p "Continue? (Y/n): " confirm_install
+        fi
+        
+        if [ "$confirm_install" != "n" ] && [ "$confirm_install" != "N" ]; then
+            apt install -y $packages_to_install
+            
+            if [ $? -eq 0 ]; then
+                if [[ "$LANG_CHOICE" == "zh" ]]; then
+                    echo "✓ 包安装成功"
+                else
+                    echo "✓ Packages installed successfully"
+                fi
+                
+                # 重新加载模块
+                depmod -a
+                
+                # 尝试加载队列模块
+                modprobe sch_fq &>/dev/null
+                modprobe sch_fq_pie &>/dev/null
+                modprobe sch_cake &>/dev/null
+                
+                return 0
+            else
+                if [[ "$LANG_CHOICE" == "zh" ]]; then
+                    echo "⚠️ 包安装失败"
+                else
+                    echo "⚠️ Package installation failed"
+                fi
+                return 1
+            fi
+        fi
+    else
+        # 尝试直接加载模块
+        if [[ "$LANG_CHOICE" == "zh" ]]; then
+            echo "尝试加载内核模块..."
+        else
+            echo "Attempting to load kernel modules..."
+        fi
+        
+        modprobe sch_fq &>/dev/null
+        modprobe sch_fq_pie &>/dev/null
+        modprobe sch_cake &>/dev/null
+    fi
+    
+    # 最后尝试使用 modprobe 强制加载
+    if [[ "$LANG_CHOICE" == "zh" ]]; then
+        echo "尝试重建模块依赖..."
+    else
+        echo "Rebuilding module dependencies..."
+    fi
+    depmod -a
+    
+    return 0
+}
+
 # --- 语言选择 ---
 echo "----------------------------------------"
 echo "Please select a language / 请选择语言:"
@@ -39,6 +179,10 @@ fi
 if [[ "$LANG_CHOICE" == "zh" ]]; then
     MSG_WELCOME="TCP通用优化配置脚本 (队列算法可选版)"
     MSG_HEADER="配置内容: BBR + 可选队列算法(FQ/FQ_PIE/CAKE) + TCP全面优化"
+    MSG_AUTO_INSTALL="是否尝试自动安装缺失的内核模块? (Y/n): "
+    MSG_INSTALL_SUCCESS="✓ 模块安装成功，重新检测中..."
+    MSG_INSTALL_FAILED="⚠️ 自动安装失败，将使用备用方案"
+    MSG_USING_FALLBACK="使用备用队列算法: pfifo_fast"
     MSG_DEBIAN13_NOTICE="检测到 Debian 13 (Trixie) 系统"
     MSG_USING_SYSCTL_D="将使用 /etc/sysctl.d/ 目录配置方式（推荐）"
     MSG_USING_SYSCTL_CONF="将使用传统 /etc/sysctl.conf 配置方式"
@@ -64,6 +208,7 @@ if [[ "$LANG_CHOICE" == "zh" ]]; then
     MSG_QDISC_DESC_FQ="1. FQ (Fair Queue)\n   - 特点: CPU效率高，延迟低，BBR官方推荐\n   - 适用: 通用场景，高性能服务器\n   - 优势: 成熟稳定，资源占用少"
     MSG_QDISC_DESC_FQPIE="2. FQ_PIE (Fair Queue PIE)\n   - 特点: 主动队列管理，更好的缓冲膨胀控制\n   - 适用: 网络拥塞严重的环境\n   - 优势: 延迟控制更精确"
     MSG_QDISC_DESC_CAKE="3. CAKE (Common Applications Kept Enhanced)\n   - 特点: 全功能队列管理，内置流量整形\n   - 适用: 复杂网络环境，需要精细控制\n   - 优势: 功能最全面，但CPU开销较大"
+    MSG_QDISC_DESC_FALLBACK="4. PFIFO_FAST (备用)\n   - 特点: 基础队列算法，兼容性最好\n   - 适用: 无法使用高级算法时的备用选择\n   - 优势: 所有系统都支持"
     MSG_QDISC_OPTIONS="可选的队列算法:"
     MSG_FQ_RECOMMENDED=" (推荐)"
     MSG_SELECT_PROMPT="请选择队列算法 (1-%s): "
@@ -129,6 +274,7 @@ if [[ "$LANG_CHOICE" == "zh" ]]; then
     MSG_FQ_FEATURE="FQ: 低延迟，高效率，CPU友好\n- 适合: 高性能服务器，通用场景"
     MSG_FQPIE_FEATURE="FQ_PIE: 主动队列管理，缓冲膨胀控制\n- 适合: 网络拥塞环境，延迟敏感应用"
     MSG_CAKE_FEATURE="CAKE: 全功能队列管理，内置流量整形\n- 适合: 复杂网络环境，需要精细控制"
+    MSG_FALLBACK_FEATURE="PFIFO_FAST: 基础队列，兼容性最好\n- 适合: 作为备用方案使用"
     MSG_MEM_LEVEL="内存配置等级: %s"
     MSG_SMALL_MEM="小内存 (<1GB)"
     MSG_MEDIUM_MEM="中等内存 (1-4GB)"
@@ -150,6 +296,10 @@ if [[ "$LANG_CHOICE" == "zh" ]]; then
 else
     MSG_WELCOME="TCP Generic Optimization Script (Selectable Queue Discipline)"
     MSG_HEADER="Configuration: BBR + Selectable Queue Discipline (FQ/FQ_PIE/CAKE) + Full TCP Tuning"
+    MSG_AUTO_INSTALL="Attempt to auto-install missing kernel modules? (Y/n): "
+    MSG_INSTALL_SUCCESS="✓ Modules installed successfully, re-detecting..."
+    MSG_INSTALL_FAILED="⚠️ Auto-install failed, using fallback"
+    MSG_USING_FALLBACK="Using fallback queue discipline: pfifo_fast"
     MSG_DEBIAN13_NOTICE="Detected Debian 13 (Trixie) system"
     MSG_USING_SYSCTL_D="Will use /etc/sysctl.d/ directory configuration (recommended)"
     MSG_USING_SYSCTL_CONF="Will use traditional /etc/sysctl.conf configuration"
@@ -175,6 +325,7 @@ else
     MSG_QDISC_DESC_FQ="1. FQ (Fair Queue)\n   - Features: High CPU efficiency, low latency, recommended by BBR developers.\n   - Use Case: General purpose, high-performance servers.\n   - Advantage: Mature, stable, and low resource usage."
     MSG_QDISC_DESC_FQPIE="2. FQ_PIE (Fair Queue PIE)\n   - Features: Active queue management, better bufferbloat control.\n   - Use Case: Environments with severe network congestion.\n   - Advantage: More precise latency control."
     MSG_QDISC_DESC_CAKE="3. CAKE (Common Applications Kept Enhanced)\n   - Features: All-in-one queue management with built-in traffic shaping.\n   - Use Case: Complex network environments requiring fine-grained control.\n   - Advantage: Most comprehensive features, but with higher CPU overhead."
+    MSG_QDISC_DESC_FALLBACK="4. PFIFO_FAST (Fallback)\n   - Features: Basic queue algorithm, best compatibility.\n   - Use Case: Fallback when advanced algorithms unavailable.\n   - Advantage: Supported by all systems."
     MSG_QDISC_OPTIONS="Available Queue Disciplines:"
     MSG_FQ_RECOMMENDED=" (recommended)"
     MSG_SELECT_PROMPT="Please select a queue discipline (1-%s): "
@@ -240,6 +391,7 @@ else
     MSG_FQ_FEATURE="FQ: Low latency, high efficiency, CPU friendly\n- Suitable for: High-performance servers, general-purpose scenarios"
     MSG_FQPIE_FEATURE="FQ_PIE: Active queue management, bufferbloat control\n- Suitable for: Congested network environments, latency-sensitive applications"
     MSG_CAKE_FEATURE="CAKE: All-in-one queue management with built-in traffic shaping\n- Suitable for: Complex network environments needing fine-grained control"
+    MSG_FALLBACK_FEATURE="PFIFO_FAST: Basic queue, best compatibility\n- Suitable for: Fallback solution"
     MSG_MEM_LEVEL="Memory Configuration Level: %s"
     MSG_SMALL_MEM="Small memory (<1GB)"
     MSG_MEDIUM_MEM="Medium memory (1-4GB)"
@@ -384,7 +536,7 @@ FQ_AVAILABLE=0
 FQ_PIE_AVAILABLE=0
 CAKE_AVAILABLE=0
 
-# Re-check for support and display properly
+# 第一次检查
 if modprobe sch_fq 2>/dev/null; then
     FQ_AVAILABLE=1
     printf "$MSG_SUPPORTED_QDISC\n" "FQ (Fair Queue)"
@@ -408,72 +560,121 @@ fi
 
 echo ""
 
-# 如果没有任何支持的算法，退出
+# 如果没有任何支持的算法，尝试自动修复
 if [ $FQ_AVAILABLE -eq 0 ] && [ $FQ_PIE_AVAILABLE -eq 0 ] && [ $CAKE_AVAILABLE -eq 0 ]; then
     echo "$MSG_NO_QDISC_ERROR"
-    echo "$MSG_SUGGEST_KERNEL"
-    exit 1
-fi
-
-# 队列算法选择
-echo "$MSG_QDISC_SELECT_TITLE"
-echo "=============="
-echo ""
-echo "$MSG_FEATURES_COMPARE"
-echo "-------------"
-echo -e "$MSG_QDISC_DESC_FQ"
-echo ""
-echo -e "$MSG_QDISC_DESC_FQPIE"
-echo ""
-echo -e "$MSG_QDISC_DESC_CAKE"
-echo ""
-
-# 生成选择菜单
-QDISC_OPTIONS=()
-QDISC_VALUES=()
-if [ "$LANG_CHOICE" == "zh" ]; then
-    FQ_RECOMMENDED=" (推荐)"
-else
-    FQ_RECOMMENDED=" (recommended)"
-fi
-
-if [ $FQ_AVAILABLE -eq 1 ]; then
-    QDISC_OPTIONS+=("FQ$FQ_RECOMMENDED")
-    QDISC_VALUES+=("fq")
-fi
-
-if [ $FQ_PIE_AVAILABLE -eq 1 ]; then
-    QDISC_OPTIONS+=("FQ_PIE")
-    QDISC_VALUES+=("fq_pie")
-fi
-
-if [ $CAKE_AVAILABLE -eq 1 ]; then
-    QDISC_OPTIONS+=("CAKE")
-    QDISC_VALUES+=("cake")
-fi
-
-echo "$MSG_QDISC_OPTIONS"
-for i in "${!QDISC_OPTIONS[@]}"; do
-    echo "$((i+1)). ${QDISC_OPTIONS[$i]}"
-done
-echo ""
-
-# 用户选择
-while true; do
-    printf "$MSG_SELECT_PROMPT" "${#QDISC_OPTIONS[@]}"
-    read choice
-    if [[ "$choice" =~ ^[0-9]+$ ]] && [ "$choice" -ge 1 ] && [ "$choice" -le "${#QDISC_OPTIONS[@]}" ]; then
-        SELECTED_QDISC="${QDISC_VALUES[$((choice-1))]}"
-        SELECTED_NAME="${QDISC_OPTIONS[$((choice-1))]}"
-        break
-    else
-        printf "$MSG_INVALID_CHOICE\n" "${#QDISC_OPTIONS[@]}"
+    echo ""
+    
+    # 询问是否自动安装
+    read -p "$MSG_AUTO_INSTALL" auto_install
+    if [ "$auto_install" != "n" ] && [ "$auto_install" != "N" ]; then
+        if auto_install_modules; then
+            echo "$MSG_INSTALL_SUCCESS"
+            echo ""
+            
+            # 重新检测
+            echo "$MSG_CHECK_QDISC"
+            echo "======================"
+            
+            if modprobe sch_fq 2>/dev/null; then
+                FQ_AVAILABLE=1
+                printf "$MSG_SUPPORTED_QDISC\n" "FQ (Fair Queue)"
+            else
+                printf "$MSG_UNSUPPORTED_QDISC\n" "FQ (Fair Queue)"
+            fi
+            
+            if modprobe sch_fq_pie 2>/dev/null; then
+                FQ_PIE_AVAILABLE=1
+                printf "$MSG_SUPPORTED_QDISC\n" "FQ_PIE (Fair Queue PIE)"
+            else
+                printf "$MSG_UNSUPPORTED_QDISC\n" "FQ_PIE (Fair Queue PIE)"
+            fi
+            
+            if modprobe sch_cake 2>/dev/null; then
+                CAKE_AVAILABLE=1
+                printf "$MSG_SUPPORTED_QDISC\n" "CAKE (Common Applications Kept Enhanced)"
+            else
+                printf "$MSG_UNSUPPORTED_QDISC\n" "CAKE (Common Applications Kept Enhanced)"
+            fi
+            
+            echo ""
+        else
+            echo "$MSG_INSTALL_FAILED"
+        fi
     fi
-done
+    
+    # 如果还是没有高级算法，使用备用方案
+    if [ $FQ_AVAILABLE -eq 0 ] && [ $FQ_PIE_AVAILABLE -eq 0 ] && [ $CAKE_AVAILABLE -eq 0 ]; then
+        echo "$MSG_USING_FALLBACK"
+        SELECTED_QDISC="pfifo_fast"
+        SELECTED_NAME="pfifo_fast (fallback)"
+        USE_FALLBACK=1
+    fi
+fi
 
-echo ""
-printf "$MSG_SELECTED_QDISC\n" "$SELECTED_NAME" "$SELECTED_QDISC"
-echo ""
+# 如果不是使用备用方案，进行队列算法选择
+if [ -z "$USE_FALLBACK" ]; then
+    # 队列算法选择
+    echo "$MSG_QDISC_SELECT_TITLE"
+    echo "=============="
+    echo ""
+    echo "$MSG_FEATURES_COMPARE"
+    echo "-------------"
+    
+    # 生成选择菜单
+    QDISC_OPTIONS=()
+    QDISC_VALUES=()
+    
+    if [ $FQ_AVAILABLE -eq 1 ]; then
+        echo -e "$MSG_QDISC_DESC_FQ"
+        echo ""
+        QDISC_OPTIONS+=("FQ$MSG_FQ_RECOMMENDED")
+        QDISC_VALUES+=("fq")
+    fi
+    
+    if [ $FQ_PIE_AVAILABLE -eq 1 ]; then
+        echo -e "$MSG_QDISC_DESC_FQPIE"
+        echo ""
+        QDISC_OPTIONS+=("FQ_PIE")
+        QDISC_VALUES+=("fq_pie")
+    fi
+    
+    if [ $CAKE_AVAILABLE -eq 1 ]; then
+        echo -e "$MSG_QDISC_DESC_CAKE"
+        echo ""
+        QDISC_OPTIONS+=("CAKE")
+        QDISC_VALUES+=("cake")
+    fi
+    
+    # 始终添加备用选项
+    echo -e "$MSG_QDISC_DESC_FALLBACK"
+    echo ""
+    QDISC_OPTIONS+=("PFIFO_FAST (Fallback)")
+    QDISC_VALUES+=("pfifo_fast")
+    
+    echo "$MSG_QDISC_OPTIONS"
+    for i in "${!QDISC_OPTIONS[@]}"; do
+        echo "$((i+1)). ${QDISC_OPTIONS[$i]}"
+    done
+    echo ""
+    
+    # 用户选择
+    while true; do
+        printf "$MSG_SELECT_PROMPT" "${#QDISC_OPTIONS[@]}"
+        read choice
+        if [[ "$choice" =~ ^[0-9]+$ ]] && [ "$choice" -ge 1 ] && [ "$choice" -le "${#QDISC_OPTIONS[@]}" ]; then
+            SELECTED_QDISC="${QDISC_VALUES[$((choice-1))]}"
+            SELECTED_NAME="${QDISC_OPTIONS[$((choice-1))]}"
+            break
+        else
+            printf "$MSG_INVALID_CHOICE\n" "${#QDISC_OPTIONS[@]}"
+        fi
+    done
+    
+    echo ""
+    printf "$MSG_SELECTED_QDISC\n" "$SELECTED_NAME" "$SELECTED_QDISC"
+    echo ""
+fi
 
 # RP Filter 选择
 echo "$MSG_RP_FILTER_TITLE"
@@ -745,6 +946,9 @@ case $SELECTED_QDISC in
     "cake")
         modprobe sch_cake 2>/dev/null
         ;;
+    "pfifo_fast")
+        # pfifo_fast 通常是内置的，不需要加载
+        ;;
 esac
 
 # 应用配置
@@ -890,6 +1094,9 @@ case $SELECTED_QDISC in
     "cake")
         echo -e "$MSG_CAKE_FEATURE"
         ;;
+    "pfifo_fast")
+        echo -e "$MSG_FALLBACK_FEATURE"
+        ;;
 esac
 echo ""
 printf "$MSG_MEM_LEVEL\n" "$(if [ $TOTAL_MEM -lt 1048 ]; then echo "$MSG_SMALL_MEM"; elif [ $TOTAL_MEM -lt 4096 ]; then echo "$MSG_MEDIUM_MEM"; else echo "$MSG_LARGE_MEM"; fi)"
@@ -930,9 +1137,3 @@ echo "$MSG_THANKS"
 echo "$MSG_THANKS_ISIF"
 echo "$MSG_ISIF_LINK"
 echo ""
-
-
-## 如需回滚，执行以下命令:
-## rm /etc/sysctl.d/99-tcp-bbr-optimization.conf
-## sysctl --system
-
