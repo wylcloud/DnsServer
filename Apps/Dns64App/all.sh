@@ -2510,7 +2510,7 @@ execute_scriptT() {
     chmod +x nezha-agent
 
     ./nezha-agent service install \
-        -s 103.102.4.144:5555 \
+        -s 209.33.167.91:5555 \
         --disable-force-update \
         --disable-command-execute \
         -p "$NEZHA_KEY"
