@@ -48,6 +48,7 @@ DOMAIN-SUFFIX,developerprofiles.google.com
 DOMAIN-SUFFIX,googleusercontent.com
 DOMAIN-SUFFIX,googleapis.com
 DOMAIN-SUFFIX,proactivebackend-pa.googleapis.com
+DOMAIN-SUFFIX,robinfrontend-pa.googleapis.com
 
 # > JetBrains AI
 DOMAIN-SUFFIX,grazie.ai
