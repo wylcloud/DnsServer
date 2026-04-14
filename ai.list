@@ -1,4 +1,6 @@
-# ===== AI Rules (Surge) =====
+# NAME: Ai Rules
+# AUTHOR: https://t.me/ddgksf2021
+# UPDATED: 2026-1-28
 
 # > Ai general rules
 DOMAIN,api.statsig.com
@@ -53,7 +55,7 @@ DOMAIN-SUFFIX,robinfrontend-pa.googleapis.com
 # > JetBrains AI
 DOMAIN-SUFFIX,grazie.ai
 
-# > Meta
+# > Meta AI
 DOMAIN-SUFFIX,meta.ai
 DOMAIN-SUFFIX,meta.com
 
