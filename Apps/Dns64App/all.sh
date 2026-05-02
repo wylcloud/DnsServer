@@ -1191,7 +1191,7 @@ check_status(){
 # v4 官方源
 v4_Download(){
     echo -e "${Info} 试图请求 ${Yellow_font_prefix}v4 官网源版${Font_color_suffix} Snell Server ……"
-    wget --no-check-certificate -N "https://dl.nssurge.com/snell/snell-server-v4.0.1-linux-${arch}.zip"
+    wget --no-check-certificate -N "https://dl.nssurge.com/snell/snell-server-v4.1.1-linux-${arch}.zip"
     if [[ ! -e "snell-server-v4.0.1-linux-${arch}.zip" ]]; then
         echo -e "${Error} Snell Server ${Yellow_font_prefix}v4 官网源版${Font_color_suffix} 下载失败！"
         return 1 && exit 1
