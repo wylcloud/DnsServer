@@ -190,8 +190,6 @@ if [[ "$LANG_CHOICE" == "zh" ]]; then
     MSG_DEBIAN13_TMP_WARNING="• /tmp 目录现在存储在内存中(tmpfs)，占用最多50%内存"
     MSG_DEBIAN13_NET_WARNING="• 网卡名称可能会发生改变，请注意检查"
     MSG_DEBIAN13_BOOT_WARNING="• 确保 /boot 分区至少有300MB空闲空间"
-    MSG_CHECK_OPENSSH="检查 OpenSSH 版本..."
-    MSG_OPENSSH_WARNING="⚠️ 警告: OpenSSH版本过低，远程升级可能中断！建议先更新OpenSSH"
     MSG_REPLACE_NOTICE="重要提示: 将创建新的优化配置，原有自定义配置将被保留。"
     MSG_ROOT_ERROR="请以root权限运行此脚本"
     MSG_SYSTEM_INFO="系统信息:"
@@ -307,8 +305,6 @@ else
     MSG_DEBIAN13_TMP_WARNING="• /tmp directory is now stored in memory (tmpfs), using up to 50% of RAM"
     MSG_DEBIAN13_NET_WARNING="• Network interface names may change, please check carefully"
     MSG_DEBIAN13_BOOT_WARNING="• Ensure /boot partition has at least 300MB free space"
-    MSG_CHECK_OPENSSH="Checking OpenSSH version..."
-    MSG_OPENSSH_WARNING="⚠️ Warning: OpenSSH version too low, remote upgrade may fail! Recommend updating OpenSSH first"
     MSG_REPLACE_NOTICE="IMPORTANT: Will create new optimization config, existing custom configurations will be preserved."
     MSG_ROOT_ERROR="Please run this script as root"
     MSG_SYSTEM_INFO="System Information:"
@@ -441,21 +437,6 @@ if [[ "$OS_NAME" == *"Debian"* ]]; then
         echo "$MSG_DEBIAN13_NET_WARNING"
         echo "$MSG_DEBIAN13_BOOT_WARNING"
         
-        # 检查 OpenSSH 版本（如果通过 SSH 连接）
-        if [ -n "$SSH_CONNECTION" ]; then
-            echo ""
-            echo "$MSG_CHECK_OPENSSH"
-            if command -v ssh -V &> /dev/null; then
-                SSH_VERSION=$(ssh -V 2>&1 | grep -oE 'OpenSSH_[0-9]+\.[0-9]+')
-                SSH_MAJOR=$(echo $SSH_VERSION | cut -d'_' -f2 | cut -d'.' -f1)
-                SSH_MINOR=$(echo $SSH_VERSION | cut -d'_' -f2 | cut -d'.' -f2)
-                
-                if [ "$SSH_MAJOR" -lt 9 ] || ([ "$SSH_MAJOR" -eq 9 ] && [ "$SSH_MINOR" -lt 2 ]); then
-                    echo "$MSG_OPENSSH_WARNING"
-                    echo "wget -O upgrade_openssh.sh https://gist.github.com/Seameee/2061e673132b05e5ed8dd6eb125f1fd1/raw/upgrade_openssh.sh && sudo chmod +x ./upgrade_openssh.sh && sudo ./upgrade_openssh.sh"
-                fi
-            fi
-        fi
         
         # 检查 /boot 分区空间
         if df /boot &> /dev/null; then
