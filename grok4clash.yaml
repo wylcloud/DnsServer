@@ -8,4 +8,4 @@ payload:
   - DOMAIN-SUFFIX,xai.chronosphere.io
   - DOMAIN-KEYWORD,grok
   # IP 段 / ASN 兜底
-  - IP-CIDR,17.253.4.125,no-resolve
+  - IP-CIDR,17.253.4.125/32,no-resolve
