@@ -1,0 +1,48 @@
+# Claude / Anthropic - Quantumult X 分流规则
+# 转换日期：2026-09-16
+# 原文件：https://raw.githubusercontent.com/wylcloud/DnsServer/master/claude.surge
+# 语法参考：https://github.com/crossutility/Quantumult-X/blob/master/sample.conf
+# 默认策略：Claude；本地使用时可替换为已有的节点或策略组名称。
+# 本地使用：将内容追加至现有配置的 [filter_local] 段，不要覆盖完整配置。
+# 远程使用：上传此文件后，在 [filter_remote] 中添加其直链；可用 force-policy 指定策略组。
+# 兼容处理：IP 规则按官方示例省略 Surge 的 no-resolve 参数，DNS 匹配行为不保证等价。
+# 原文件中的 UDP/123 组合规则未启用，原规则保留在下方注释中。
+# 原文件的第三方服务及关键词规则照原样保留，也会匹配其他应用使用的相同服务。
+
+# 核心域名
+host-suffix, anthropic.com, Claude
+host-suffix, claude.ai, Claude
+host-suffix, claude.com, Claude
+host-suffix, clau.de, Claude
+host-suffix, claudemcpclient.com, Claude
+host-suffix, claudemcpcontent.com, Claude
+host-suffix, claudeusercontent.com, Claude
+
+# CDN 和基础设施
+host, servd-anthropic-website.b-cdn.net, Claude
+host, anthropic.com.cdn.cloudflare.net, Claude
+
+# 身份验证和内容
+host, anthropic.auth0.com, Claude
+host, anthropic-com.ghost.io, Claude
+
+# 监控和遥测
+host-suffix, sentry.io, Claude
+host-suffix, statsigapi.net, Claude
+host, browser-intake-us5-datadoghq.com, Claude
+host-keyword, datadog, Claude
+host-keyword, sentry, Claude
+host-keyword, sift, Claude
+
+# 客服和第三方组件
+host-suffix, intercom.io, Claude
+host-suffix, intercomcdn.com, Claude
+host, cdn.usefathom.com, Claude
+
+# NTP / 时间同步：未找到 Quantumult X 官方记录的等价组合语法，未转换。
+# 原 Surge 规则：AND,((PROTOCOL,UDP),(DEST-PORT,123))
+
+# Anthropic IP 和 ASN 兜底
+ip-cidr, 160.79.104.0/21, Claude
+ip6-cidr, 2607:6bc0::/32, Claude
+ip-asn, 399358, Claude
