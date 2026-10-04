@@ -2,13 +2,13 @@
 
 # ====================================================
 # SSH 安全配置脚本
-# 功能：修改端口为 22122、远端拉取公钥、完全禁用密码登录
+# 功能：修改端口为 61125、远端拉取公钥、完全禁用密码登录
 # ====================================================
 
 # 【必须修改】请将此处替换为您存放在远端（如 GitHub Gist、个人静态网页等）的【公钥 (.pub)】的直链 URL
 # 例如：https://raw.githubusercontent.com/yourname/repo/main/id_ed25519.pub
 PUBLIC_KEY_URL="https://raw.githubusercontent.com/wylcloud/DnsServer/master/Apps/Dns64App/vps_cluster.pub"
-SSH_PORT=22122
+SSH_PORT=61125
 
 # 确保以 root 权限执行
 if [ "$(id -u)" != "0" ]; then
